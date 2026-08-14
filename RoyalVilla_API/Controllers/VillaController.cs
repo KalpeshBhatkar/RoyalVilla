@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RoyalVilla_API.Data;
@@ -12,10 +13,12 @@ namespace RoyalVilla_API.Controllers
     public class VillaController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
+        private readonly IMapper _mapper;
 
-        public VillaController(ApplicationDbContext db)
+        public VillaController(ApplicationDbContext db, IMapper mapper)
         {
             _db = db;
+            _mapper = mapper;
         }
 
         [HttpGet]
@@ -51,7 +54,7 @@ namespace RoyalVilla_API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Villa>> GetVillaById(CreateVillaDTO villaDTO)
+        public async Task<ActionResult<Villa>> CreateVilla(CreateVillaDTO villaDTO)
         {
             try
             {
@@ -60,20 +63,11 @@ namespace RoyalVilla_API.Controllers
                     return BadRequest("villa data is required.");
                 }
 
-                Villa _villa = new()
-                {
-                    Name = villaDTO.Name,
-                    Details = villaDTO.Details,
-                    Rate = villaDTO.Rate,
-                    Sqft = villaDTO.Sqft,
-                    Occupancy = villaDTO.Occupancy,
-                    ImageUrl = villaDTO.ImageUrl,
-                    CreatedDate = DateTime.Now
-                };
+                Villa _villa = _mapper.Map<Villa>(villaDTO);  
 
                 await _db.Villa.AddAsync(_villa);
                 await _db.SaveChangesAsync();
-                return Ok(_villa);
+                return CreatedAtAction(nameof(GetVillaById), new { id = _villa.Id }, _villa);
             }
             catch (Exception ex)
             {
@@ -81,5 +75,56 @@ namespace RoyalVilla_API.Controllers
             }
         }
 
+        [HttpPut("{id:int}")]
+        public async Task<ActionResult<Villa>> UpdateVilla(int id, UpdateVillaDTO villaDTO)
+        {
+            try
+            {
+                if (villaDTO == null)
+                {
+                    return BadRequest("villa data is required.");
+                }
+                if (id != villaDTO.Id)
+                {
+                    return BadRequest("Villa ID in URL does not match Villa ID in request body");
+                }
+
+                var existingVilla = await _db.Villa.FirstOrDefaultAsync(v => v.Id == id);
+                if (existingVilla == null)
+                {
+                    return NotFound($"Villa with ID {id} not found.");
+                }
+
+                _mapper.Map(villaDTO, existingVilla);
+                existingVilla.UpdatedDate = DateTime.UtcNow;
+                //await _db.Villa.AddAsync(existingVilla);
+                await _db.SaveChangesAsync();
+                return Ok(villaDTO);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Error occurred while updating the villa : {ex.Message}");
+            }
+        }
+
+        [HttpDelete("{id:int}")]
+        public async Task<ActionResult<Villa>> DeleteVilla(int id)
+        {
+            try
+            {
+                var existingVilla = await _db.Villa.FirstOrDefaultAsync(v => v.Id == id);
+                if (existingVilla == null)
+                {
+                    return NotFound($"Villa with ID {id} not found.");
+                }
+                _db.Villa.Remove(existingVilla);
+                await _db.SaveChangesAsync();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Error occurred while deleting the villa : {ex.Message}");
+            }
+        }
     }
 }

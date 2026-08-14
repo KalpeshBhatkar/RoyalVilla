@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RoyalVilla_API.Data;
+using RoyalVilla_API.Models;
+using RoyalVilla_API.Models.DTO;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +14,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(option =>
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddAutoMapper(o =>
+{
+    o.CreateMap<Villa, CreateVillaDTO>().ReverseMap();
+    o.CreateMap<Villa, UpdateVillaDTO>().ReverseMap();
+});
 
 var app = builder.Build();
 await SeedDataAsync(app);
