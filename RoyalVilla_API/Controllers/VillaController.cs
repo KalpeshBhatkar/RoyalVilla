@@ -22,13 +22,14 @@ namespace RoyalVilla_API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Villa>>> GetVillasById()
+        public async Task<ActionResult<IEnumerable<VillaDTO>>> GetVillasById()
         {
-            return Ok(await _db.Villa.ToListAsync());
+            var villas = await _db.Villa.ToListAsync();
+            return Ok(_mapper.Map<List<VillaDTO>>(villas));
         }
 
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Villa>> GetVillaById(int id)
+        public async Task<ActionResult<VillaDTO>> GetVillaById(int id)
         {
             try
             {
@@ -44,7 +45,7 @@ namespace RoyalVilla_API.Controllers
                 }
                 else
                 {
-                    return Ok(villa);
+                    return Ok(_mapper.Map<VillaDTO>(villa));
                 }
             }
             catch (Exception ex)
@@ -54,7 +55,7 @@ namespace RoyalVilla_API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Villa>> CreateVilla(CreateVillaDTO villaDTO)
+        public async Task<ActionResult<VillaDTO>> CreateVilla(CreateVillaDTO villaDTO)
         {
             try
             {
@@ -63,11 +64,15 @@ namespace RoyalVilla_API.Controllers
                     return BadRequest("villa data is required.");
                 }
 
-                Villa _villa = _mapper.Map<Villa>(villaDTO);  
-
+                Villa _villa = _mapper.Map<Villa>(villaDTO);
+                var duplicateVilla = await _db.Villa.FirstOrDefaultAsync(v => v.Name.ToLower() == villaDTO.Name.ToLower());
+                if (duplicateVilla != null)
+                {
+                    return Conflict($"Villa with name '{villaDTO.Name}' already exists.");
+                }
                 await _db.Villa.AddAsync(_villa);
                 await _db.SaveChangesAsync();
-                return CreatedAtAction(nameof(GetVillaById), new { id = _villa.Id }, _villa);
+                return CreatedAtAction(nameof(GetVillaById), new { id = _villa.Id }, _mapper.Map<VillaDTO>(_villa));
             }
             catch (Exception ex)
             {
@@ -76,7 +81,7 @@ namespace RoyalVilla_API.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<ActionResult<Villa>> UpdateVilla(int id, UpdateVillaDTO villaDTO)
+        public async Task<ActionResult<VillaDTO>> UpdateVilla(int id, UpdateVillaDTO villaDTO)
         {
             try
             {
@@ -95,11 +100,17 @@ namespace RoyalVilla_API.Controllers
                     return NotFound($"Villa with ID {id} not found.");
                 }
 
+                var duplicateVilla = await _db.Villa.FirstOrDefaultAsync(v => v.Name.ToLower() == villaDTO.Name.ToLower() && v.Id != id);
+                if (duplicateVilla != null)
+                {
+                    return Conflict($"Villa with name '{villaDTO.Name}' already exists.");
+                }
+
                 _mapper.Map(villaDTO, existingVilla);
                 existingVilla.UpdatedDate = DateTime.UtcNow;
                 //await _db.Villa.AddAsync(existingVilla);
                 await _db.SaveChangesAsync();
-                return Ok(villaDTO);
+                return Ok(_mapper.Map<VillaDTO>(villaDTO));
             }
             catch (Exception ex)
             {
@@ -108,7 +119,7 @@ namespace RoyalVilla_API.Controllers
         }
 
         [HttpDelete("{id:int}")]
-        public async Task<ActionResult<Villa>> DeleteVilla(int id)
+        public async Task<ActionResult> DeleteVilla(int id)
         {
             try
             {
