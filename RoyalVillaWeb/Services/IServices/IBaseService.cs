@@ -1,0 +1,11 @@
+﻿using RoyalVilla.DTO;
+using RoyalVillaWeb.Models;
+
+namespace RoyalVillaWeb.Services.IServices
+{
+    public class IBaseService
+    {
+        ApiResponse<object> ResponseModel { get; set; }
+        Task<T> SendAsync<T>(ApiRequest apiRequest, bool withBearer = true);
+    }
+}

@@ -90,6 +90,8 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
+app.UseCors(o => o.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("*"));
+
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
