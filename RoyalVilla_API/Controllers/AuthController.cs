@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using RoyalVilla_API.Models.DTO;
+using RoyalVilla.DTO;
 using RoyalVilla_API.Services;
 
 namespace RoyalVilla_API.Controllers
