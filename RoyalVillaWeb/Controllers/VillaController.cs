@@ -34,6 +34,32 @@ namespace RoyalVillaWeb.Controllers
             }
             return View(villaList);
         }
-        
+
+        public IActionResult Create()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(CreateVillaDTO createVillaDTO)
+        {
+            if (!ModelState.IsValid) { return View(createVillaDTO); }
+
+            try
+            {
+                var response = await _villaService.CreateAsync<ApiResponse<VillaDTO>>(createVillaDTO, "");
+                if (response != null && response.Success && response.Data != null)
+                {
+                    TempData["success"] = "Villa created successfully";
+                    return RedirectToAction(nameof(Index));
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["error"] = $"An error occurred: {ex.Message}";
+            }
+            return View(createVillaDTO);
+        }
     }
 }
