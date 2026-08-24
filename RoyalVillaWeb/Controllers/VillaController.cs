@@ -61,5 +61,47 @@ namespace RoyalVillaWeb.Controllers
             }
             return View(createVillaDTO);
         }
+
+        public async Task<IActionResult> Delete(int id)
+        {
+            if (id <= 0)
+            {
+                TempData["error"] = $"Invalid villa ID";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                var response = await _villaService.GetAsync<ApiResponse<VillaDTO>>(id, "");
+                if (response != null && response.Success && response.Data != null)
+                {
+                    View(response.Data);
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["error"] = $"An error occurred: {ex.Message}";
+            }
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(VillaDTO villaDTO)
+        {
+            try
+            {
+                var response = await _villaService.DeleteAsync<ApiResponse<object>>(villaDTO.Id, "");
+                if (response != null && response.Success && response.Data != null)
+                {
+                    TempData["success"] = "Villa deleted successfully";
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["error"] = $"An error occurred: {ex.Message}";
+            }
+            return RedirectToAction(nameof(Index));
+        }
     }
 }
