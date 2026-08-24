@@ -53,6 +53,32 @@ namespace RoyalVillaWeb.Controllers
             });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Register(RegisterationRequestDTO registerationRequestDTO)
+        {
+            try
+            {
+                ApiResponse<UserDTO> response = await _authService.RegisterAsync<ApiResponse<UserDTO>>(registerationRequestDTO);
+                if (response != null && response.Success && response.Data != null)
+                {
+                    //UserDTO model = response.Data;
+                    TempData["success"] = "Registration successful... Please login with your credentials.";
+                    return RedirectToAction(nameof(Login));
+                }
+                else
+                {
+                    TempData["error"] = response?.Message ?? "Registration failed. Please tey again.";
+                    return View(registerationRequestDTO);
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["error"] = $"An error occurred: {ex.Message}";
+            }
+            return View(registerationRequestDTO);
+        }
+
         public IActionResult AccessDenied()
         {
             return View();
