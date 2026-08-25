@@ -6,9 +6,9 @@ using RoyalVilla_API.Data;
 using RoyalVilla_API.Models;
 using RoyalVilla.DTO;
 
-namespace RoyalVilla_API.Controllers
+namespace RoyalVilla_API.Controllers.v1
 {
-    [Route("api/villa-amenities")]
+    [Route("api/v1/villa-amenities")]
     [ApiController]
     public class VillaAmenitiesController : ControllerBase
     {
