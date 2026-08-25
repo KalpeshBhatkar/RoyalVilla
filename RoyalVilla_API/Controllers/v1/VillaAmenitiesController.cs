@@ -9,6 +9,7 @@ using RoyalVilla.DTO;
 namespace RoyalVilla_API.Controllers.v1
 {
     [Route("api/v1/villa-amenities")]
+    [ApiExplorerSettings(GroupName = "v1")]
     [ApiController]
     public class VillaAmenitiesController : ControllerBase
     {
