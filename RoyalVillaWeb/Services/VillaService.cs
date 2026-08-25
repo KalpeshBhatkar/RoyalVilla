@@ -13,55 +13,50 @@ namespace RoyalVillaWeb.Services
         {
             //_villaUrl = configuration.GetValue<string>("ServiceUrls:VillaAPI");
         }
-        public Task<T?> GetAllAsync<T>(string token)
+        public Task<T?> GetAllAsync<T>()
         {
             return SendAsync<T>(new ApiRequest
             {
                 ApiType = SD.ApiType.GET,
-                Url = $"{APIEndpoint}",
-                Token = token
+                Url = $"{APIEndpoint}"
             });
         }
 
-        public Task<T?> GetAsync<T>(int id, string token)
+        public Task<T?> GetAsync<T>(int id)
         {
             return SendAsync<T>(new ApiRequest
             {
                 ApiType = SD.ApiType.GET,
-                Url = $"{APIEndpoint}/{id}",
-                Token = token
+                Url = $"{APIEndpoint}/{id}"
             });
         }
 
-        public Task<T?> CreateAsync<T>(CreateVillaDTO dto, string token)
+        public Task<T?> CreateAsync<T>(CreateVillaDTO dto)
         {
             return SendAsync<T>(new ApiRequest
             {
                 ApiType = SD.ApiType.POST,
                 Data = dto,
-                Url = $"{APIEndpoint}",
-                Token = token
+                Url = $"{APIEndpoint}"
             });
         }
 
-        public Task<T?> UpdateAsync<T>(UpdateVillaDTO dto, string token)
+        public Task<T?> UpdateAsync<T>(UpdateVillaDTO dto)
         {
             return SendAsync<T>(new ApiRequest
             {
                 ApiType = SD.ApiType.PUT,
                 Data = dto,
-                Url = $"{APIEndpoint}/{dto.Id}",
-                Token = token
+                Url = $"{APIEndpoint}/{dto.Id}"
             });
         }
 
-        public Task<T?> DeleteAsync<T>(int id, string token)
+        public Task<T?> DeleteAsync<T>(int id)
         {
             return SendAsync<T>(new ApiRequest
             {
                 ApiType = SD.ApiType.DELETE,
-                Url = $"{APIEndpoint}/{id}",
-                Token = token
+                Url = $"{APIEndpoint}/{id}"
             });
         }
     }
