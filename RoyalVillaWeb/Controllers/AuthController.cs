@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using RoyalVilla.DTO;
-using RoyalVillaWeb.Models;
 using RoyalVillaWeb.Services.IServices;
-using System.Diagnostics;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace RoyalVillaWeb.Controllers
 {
@@ -32,6 +34,18 @@ namespace RoyalVillaWeb.Controllers
                 if (response != null && response.Success && response.Data != null)
                 {
                     LoginResponseDTO model = response.Data;
+
+                    var handler = new JwtSecurityTokenHandler();
+                    var jwt = handler.ReadJwtToken(model.Token);
+                    var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
+                    identity.AddClaim(new Claim(ClaimTypes.Name, jwt.Claims.FirstOrDefault(u => u.Type == "email").Value));
+                    identity.AddClaim(new Claim(ClaimTypes.Role, jwt.Claims.FirstOrDefault(u => u.Type == "role").Value));
+
+                    var principal = new ClaimsPrincipal(identity);
+
+                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+                    HttpContext.Session.SetString(SD.SessionToken, model.Token);
+                    return RedirectToAction("Index", "Home");
                 }
             }
             catch (Exception ex)
@@ -85,7 +99,8 @@ namespace RoyalVillaWeb.Controllers
         }
         public async Task<IActionResult> Logout()
         {
-            return View();
+            await HttpContext.SignOutAsync();
+            return RedirectToAction("Index", "Home");
         }
     }
 }

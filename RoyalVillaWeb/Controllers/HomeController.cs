@@ -17,6 +17,7 @@ namespace RoyalVillaWeb.Controllers
             _mapper = mapper;
         }
 
+        //[Authorize]
         public async Task<IActionResult> Index()
         {
             List<VillaDTO> villaList = new();

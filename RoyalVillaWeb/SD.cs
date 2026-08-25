@@ -10,5 +10,7 @@
             DELETE, 
             TRACE,
         }
+
+        public const string SessionToken = "jwtSession";
     }
 }

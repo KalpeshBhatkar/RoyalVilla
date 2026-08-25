@@ -10,6 +10,7 @@ namespace RoyalVilla_API.Controllers
 {
     [Route("api/villa")]
     [ApiController]
+    [Authorize]
     //[Authorize(Roles = "Admin,Customer")]
     public class VillaController : ControllerBase
     {
