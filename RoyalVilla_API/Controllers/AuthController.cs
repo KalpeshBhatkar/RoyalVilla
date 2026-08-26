@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using Asp.Versioning;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RoyalVilla.DTO;
@@ -7,6 +8,7 @@ using RoyalVilla_API.Services;
 namespace RoyalVilla_API.Controllers
 {
     [Route("api/auth")]
+    [ApiVersionNeutral]
     [ApiController]
     public class AuthController : ControllerBase
     {
