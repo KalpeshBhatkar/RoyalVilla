@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using RoyalVilla.DTO;
 using RoyalVilla_API.Data;
 using RoyalVilla_API.Models;
+using RoyalVilla_API.Services;
+using RoyalVilla_API.Services.IServices;
 
 namespace RoyalVilla_API.Controllers.v2
 {
@@ -17,11 +19,13 @@ namespace RoyalVilla_API.Controllers.v2
     {
         private readonly ApplicationDbContext _db;
         private readonly IMapper _mapper;
+        private readonly IImageService _imageService;
 
-        public VillaController(ApplicationDbContext db, IMapper mapper)
+        public VillaController(ApplicationDbContext db, IMapper mapper, IImageService imageService)
         {
             _db = db;
             _mapper = mapper;
+            _imageService = imageService;
         }
 
         [HttpGet]
@@ -102,7 +106,7 @@ namespace RoyalVilla_API.Controllers.v2
 
             var villas = await villasQuery.Skip(skip).Take(pageSize).ToListAsync();
             var dtoResponseVilla = _mapper.Map<List<VillaDTO>>(villas);
-            
+
 
             var messageBuilder = new System.Text.StringBuilder();
             messageBuilder.Append($"Successfully retrieved {dtoResponseVilla.Count} villa's");
@@ -158,11 +162,13 @@ namespace RoyalVilla_API.Controllers.v2
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
+        //[AllowAnonymous]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(ApiResponse<VillaDTO>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<ApiResponse<VillaDTO>>> CreateVilla(CreateVillaDTO villaDTO)
+        public async Task<ActionResult<ApiResponse<VillaDTO>>> CreateVilla([FromForm] CreateVillaDTO villaDTO)
         {
             try
             {
@@ -171,12 +177,22 @@ namespace RoyalVilla_API.Controllers.v2
                     return BadRequest(ApiResponse<object>.BadRequest("villa data is required."));
                 }
 
-                Villa _villa = _mapper.Map<Villa>(villaDTO);
                 var duplicateVilla = await _db.Villa.FirstOrDefaultAsync(v => v.Name.ToLower() == villaDTO.Name.ToLower());
                 if (duplicateVilla != null)
                 {
                     return Conflict(ApiResponse<object>.Conflict($"Villa with name '{villaDTO.Name}' already exists."));
                 }
+                Villa _villa = _mapper.Map<Villa>(villaDTO);
+
+                if (villaDTO.Image != null)
+                {
+                    if (!_imageService.validateImage(villaDTO.Image))
+                    {
+                        return BadRequest(ApiResponse<object>.BadRequest("Invalid image file. Allowed formats: .jpg, .jpeg, .png Max size: 5MB"));
+                    }
+                    _villa.ImageUrl = await _imageService.UploadImageAsync(villaDTO.Image);
+                }
+
                 await _db.Villa.AddAsync(_villa);
                 await _db.SaveChangesAsync();
                 var dtoResponseVilla = _mapper.Map<VillaDTO>(_villa);
@@ -191,12 +207,14 @@ namespace RoyalVilla_API.Controllers.v2
 
         [HttpPut("{id:int}")]
         [Authorize(Roles = "Admin")]
+        //[AllowAnonymous]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(ApiResponse<VillaDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<ApiResponse<VillaDTO>>> UpdateVilla(int id, UpdateVillaDTO villaDTO)
+        public async Task<ActionResult<ApiResponse<VillaDTO>>> UpdateVilla(int id, [FromForm] UpdateVillaDTO villaDTO)
         {
             try
             {
@@ -207,6 +225,11 @@ namespace RoyalVilla_API.Controllers.v2
                 if (id != villaDTO.Id)
                 {
                     return BadRequest(ApiResponse<object>.BadRequest("Villa ID in URL does not match Villa ID in request body"));
+                }
+
+                if (villaDTO.Image != null && !_imageService.validateImage(villaDTO.Image))
+                {
+                    return BadRequest(ApiResponse<object>.BadRequest("Invalid image file. Allowed formats: .jpg, .jpeg, .png Max size: 5MB"));
                 }
 
                 var existingVilla = await _db.Villa.FirstOrDefaultAsync(v => v.Id == id);
@@ -221,8 +244,22 @@ namespace RoyalVilla_API.Controllers.v2
                     return Conflict(ApiResponse<object>.Conflict($"Villa with name '{villaDTO.Name}' already exists."));
                 }
 
+
+                var oldImageUrl = existingVilla.ImageUrl;
+
                 _mapper.Map(villaDTO, existingVilla);
                 existingVilla.UpdatedDate = DateTime.UtcNow;
+
+                if (villaDTO.Image != null)
+                {
+                    existingVilla.ImageUrl = await _imageService.UploadImageAsync(villaDTO.Image);
+                    villaDTO.ImageUrl = existingVilla.ImageUrl;
+                    if (!string.IsNullOrEmpty(oldImageUrl) && oldImageUrl != existingVilla.ImageUrl)
+                    {
+                        await _imageService.DeleteImageAsync(oldImageUrl);
+                    }
+                }
+
                 //await _db.Villa.AddAsync(existingVilla);
                 await _db.SaveChangesAsync();
                 return Ok(ApiResponse<VillaDTO>.Ok(_mapper.Map<VillaDTO>(villaDTO), "Villa updated successfully"));
@@ -248,6 +285,12 @@ namespace RoyalVilla_API.Controllers.v2
                 {
                     return NotFound(ApiResponse<object>.NotFound($"Villa with ID {id} not found."));
                 }
+
+                if (!string.IsNullOrEmpty(existingVilla.ImageUrl))
+                {
+                    await _imageService.DeleteImageAsync(existingVilla.ImageUrl);
+                }
+
                 _db.Villa.Remove(existingVilla);
                 await _db.SaveChangesAsync();
                 return Ok(ApiResponse<object>.NotContent("Villa deleted successfully"));

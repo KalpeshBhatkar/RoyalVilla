@@ -11,6 +11,7 @@ using System.Text;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Identity;
+using RoyalVilla_API.Services.IServices;
 
 var builder = WebApplication.CreateBuilder(args);
 var key = Encoding.ASCII.GetBytes(builder.Configuration.GetSection("JwtSettings")["Secret"]);
@@ -36,7 +37,7 @@ builder.Services.AddAuthentication(option =>
         ClockSkew = TimeSpan.Zero
     };
 });
-
+builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddApiVersioning(options =>
 {
     options.AssumeDefaultVersionWhenUnspecified = true;
@@ -148,6 +149,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.UseStaticFiles();
 app.UseCors(o => o.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("*"));
 
 app.UseHttpsRedirection();

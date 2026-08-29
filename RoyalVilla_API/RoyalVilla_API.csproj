@@ -27,4 +27,8 @@
 		<ProjectReference Include="..\RoyalVilla.DTO\RoyalVilla.DTO.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="wwwroot\" />
+	</ItemGroup>
+
 </Project>
