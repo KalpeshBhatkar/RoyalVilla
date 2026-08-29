@@ -1,6 +1,7 @@
 ﻿using RoyalVillaWeb.Services.IServices;
 using RoyalVilla.DTO;
 using RoyalVillaWeb.Models;
+using RoyalVillaWeb.Extensions;
 
 namespace RoyalVillaWeb.Services
 {
@@ -43,10 +44,11 @@ namespace RoyalVillaWeb.Services
 
         public Task<T?> UpdateAsync<T>(UpdateVillaDTO dto)
         {
+            var formData = dto.ToMultipartFormData();
             return SendAsync<T>(new ApiRequest
             {
                 ApiType = SD.ApiType.PUT,
-                Data = dto,
+                Data = formData,
                 Url = $"{APIEndpoint}/{dto.Id}"
             });
         }

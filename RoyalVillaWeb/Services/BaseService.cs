@@ -35,14 +35,21 @@ namespace RoyalVillaWeb.Services
                 };
 
                 var token = _httpContextAccessor.HttpContext?.Session?.GetString(SD.SessionToken);
-                if (!string.IsNullOrEmpty(token)) {
-
+                if (!string.IsNullOrEmpty(token))
+                {
                     message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 }
 
                 if (apiRequest.Data != null)
                 {
-                    message.Content = JsonContent.Create(apiRequest.Data, options: JsonOptions);
+                    if (apiRequest.Data is MultipartFormDataContent multipartFormDataContent)
+                    {
+                        message.Content = multipartFormDataContent;
+                    }
+                    else
+                    {
+                        message.Content = JsonContent.Create(apiRequest.Data, options: JsonOptions);
+                    }
                 }
                 var apiResponse = await client.SendAsync(message);
 
