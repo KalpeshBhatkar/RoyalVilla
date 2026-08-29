@@ -140,7 +140,7 @@ if (app.Environment.IsDevelopment())
 
             var isDefault = version.ApiVersion.Equals(new ApiVersion(2, 0));
 
-            option.AddDocument(versionName, displayName, "/openapi/{versionName}.json", isDefault);
+            option.AddDocument(versionName, displayName, $"/openapi/{versionName}.json", isDefault);
         }
     });
 }
