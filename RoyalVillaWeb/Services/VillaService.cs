@@ -8,7 +8,7 @@ namespace RoyalVillaWeb.Services
     {
         //private readonly string _villaUrl;
 
-        private const string APIEndpoint = $"/api/villa";
+        private const string APIEndpoint = $"/api/{SD.CurrentAPIVersion}/villa";
         public VillaService(IHttpClientFactory httpClient, IConfiguration configuration, IHttpContextAccessor httpContextAccessor) : base(httpClient, httpContextAccessor)
         {
             //_villaUrl = configuration.GetValue<string>("ServiceUrls:VillaAPI");

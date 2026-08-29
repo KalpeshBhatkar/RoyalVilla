@@ -97,10 +97,12 @@ namespace RoyalVilla_API.Controllers.v2
             //page 2, pagesize 10
             var skip = (page - 1) * pageSize;
 
-            var villas = await villasQuery.Skip(skip).Take(pageSize).ToListAsync();
-            var dtoResponseVilla = _mapper.Map<List<VillaDTO>>(villas);
             var totalCount = await villasQuery.CountAsync();
             var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+            var villas = await villasQuery.Skip(skip).Take(pageSize).ToListAsync();
+            var dtoResponseVilla = _mapper.Map<List<VillaDTO>>(villas);
+            
 
             var messageBuilder = new System.Text.StringBuilder();
             messageBuilder.Append($"Successfully retrieved {dtoResponseVilla.Count} villa's");
