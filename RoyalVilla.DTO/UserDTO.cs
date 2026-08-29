@@ -4,8 +4,7 @@ namespace RoyalVilla.DTO
 {
     public class UserDTO
     {
-        [Key]
-        public int Id { get; set; }
+        public string Id { get; set; }
 
         public string Email { get; set; } = default!;
 

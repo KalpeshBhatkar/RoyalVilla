@@ -47,6 +47,11 @@ namespace RoyalVillaWeb.Controllers
                     HttpContext.Session.SetString(SD.SessionToken, model.Token);
                     return RedirectToAction("Index", "Home");
                 }
+                else
+                {
+                    TempData["error"] = response?.Message ?? "login failed";
+                    return View(loginRequestDTO);
+                }
             }
             catch (Exception ex)
             {

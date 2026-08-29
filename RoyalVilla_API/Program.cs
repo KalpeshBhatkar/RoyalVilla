@@ -15,7 +15,7 @@ using Microsoft.AspNetCore.Identity;
 var builder = WebApplication.CreateBuilder(args);
 var key = Encoding.ASCII.GetBytes(builder.Configuration.GetSection("JwtSettings")["Secret"]);
 
-builder.Services.AddIdentity<IdentityUser, IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>();
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddAuthentication(option =>
 {
@@ -110,7 +110,7 @@ builder.Services.AddAutoMapper(o =>
     o.CreateMap<Villa, VillaDTO>().ReverseMap();
     o.CreateMap<UpdateVillaDTO, VillaDTO>().ReverseMap();
     o.CreateMap<User, UserDTO>().ReverseMap();
-
+    o.CreateMap<ApplicationUser, UserDTO>().ReverseMap();
 
     o.CreateMap<VillaAmenities, VillaAmenitiesCreateDTO>().ReverseMap();
     o.CreateMap<VillaAmenities, VillaAmenitiesUpdateDTO>().ReverseMap();
