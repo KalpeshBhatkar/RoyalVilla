@@ -4,8 +4,6 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using RoyalVilla.DTO;
 using RoyalVillaWeb.Services.IServices;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 
 namespace RoyalVillaWeb.Controllers
 {
@@ -13,10 +11,13 @@ namespace RoyalVillaWeb.Controllers
     {
         private readonly IAuthService _authService;
         private readonly IMapper _mapper;
-        public AuthController(IAuthService authService, IMapper mapper)
+        private readonly ITokenProvider _tokenProvider;
+
+        public AuthController(IAuthService authService, IMapper mapper, ITokenProvider tokenProvider)
         {
             _authService = authService;
             _mapper = mapper;
+            _tokenProvider = tokenProvider;
         }
         [HttpGet]
         public IActionResult Login()
@@ -33,19 +34,18 @@ namespace RoyalVillaWeb.Controllers
                 var response = await _authService.LoginAsync<ApiResponse<TokenDTO>>(loginRequestDTO);
                 if (response != null && response.Success && response.Data != null)
                 {
-                    TokenDTO model = response.Data;
 
-                    var handler = new JwtSecurityTokenHandler();
-                    var jwt = handler.ReadJwtToken(model.AccessToken);
-                    var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
-                    identity.AddClaim(new Claim(ClaimTypes.Name, jwt.Claims.FirstOrDefault(u => u.Type == "email").Value));
-                    identity.AddClaim(new Claim(ClaimTypes.Role, jwt.Claims.FirstOrDefault(u => u.Type == "role").Value));
-
-                    var principal = new ClaimsPrincipal(identity);
-
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-                    HttpContext.Session.SetString(SD.SessionToken, model.AccessToken);
-                    return RedirectToAction("Index", "Home");
+                    var principal = _tokenProvider.CreatePrincipalFromJwtToken(response.Data.AccessToken);
+                    if (principal != null)
+                    {
+                        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+                        _tokenProvider.SetToken(response.Data.AccessToken);
+                        return RedirectToAction("Index", "Home");
+                    }
+                    else
+                    {
+                        TempData["error"] = "Invalid token receive. Please try again.";
+                    }
                 }
                 else
                 {
@@ -104,7 +104,8 @@ namespace RoyalVillaWeb.Controllers
         }
         public async Task<IActionResult> Logout()
         {
-            await HttpContext.SignOutAsync();
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            _tokenProvider.ClearToken();
             return RedirectToAction("Index", "Home");
         }
     }

@@ -1,7 +1,5 @@
 ﻿using Asp.Versioning;
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using RoyalVilla.DTO;
 using RoyalVilla_API.Services.IServices;
 
