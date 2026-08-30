@@ -19,14 +19,16 @@ namespace RoyalVilla_API.Services
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IMapper _mapper;
         private readonly IConfiguration _configuration;
+        private readonly ITokenService _tokenService;
 
-        public AuthService(ApplicationDbContext db, IMapper mapper, IConfiguration configuration, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        public AuthService(ApplicationDbContext db, IMapper mapper, IConfiguration configuration, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ITokenService tokenService)
         {
             _db = db;
             _mapper = mapper;
             _configuration = configuration;
             _userManager = userManager;
             _roleManager = roleManager;
+            _tokenService = tokenService;
         }
 
         public async Task<UserDTO?> RegisterAsync(RegisterationRequestDTO registerationRequestDTO)
@@ -98,7 +100,7 @@ namespace RoyalVilla_API.Services
                 }
 
                 //generate TOKEN
-                var token = await GenerateJwtToken(user);
+                var token = await _tokenService.GenerateJwtTokenAsync(user);
                 var roles = await _userManager.GetRolesAsync(user);
 
                 TokenDTO tokenDTO = new TokenDTO
@@ -123,26 +125,5 @@ namespace RoyalVilla_API.Services
             return await _db.ApplicationUsers.AnyAsync(u => u.Email.ToLower() == email.ToLower());
         }
 
-        private async Task<string> GenerateJwtToken(ApplicationUser user)
-        {
-            var key = Encoding.ASCII.GetBytes(_configuration.GetSection("JwtSettings")["Secret"]);
-            var roles = await _userManager.GetRolesAsync(user);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Name, user.Name),
-                    new Claim(ClaimTypes.Role, roles.FirstOrDefault())
-                }),
-                Expires = DateTime.UtcNow.AddDays(7),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
-        }
     }
 }

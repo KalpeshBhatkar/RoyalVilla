@@ -121,6 +121,7 @@ builder.Services.AddAutoMapper(o =>
 });
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 var app = builder.Build();
 await SeedDataAsync(app);
