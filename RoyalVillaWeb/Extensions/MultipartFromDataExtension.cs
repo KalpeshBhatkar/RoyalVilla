@@ -11,7 +11,7 @@
             {
                 var value = property.GetValue(obj);
 
-                if (value != null)
+                if (value == null)
                 {
                     continue;
                 }

@@ -161,8 +161,8 @@ namespace RoyalVilla_API.Controllers.v2
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
-        //[AllowAnonymous]
+        //[Authorize(Roles = "Admin")]
+        [AllowAnonymous]
         [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(ApiResponse<VillaDTO>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
@@ -206,8 +206,8 @@ namespace RoyalVilla_API.Controllers.v2
         }
 
         [HttpPut("{id:int}")]
-        [Authorize(Roles = "Admin")]
-        //[AllowAnonymous]
+        //[Authorize(Roles = "Admin")]
+        [AllowAnonymous]
         [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(ApiResponse<VillaDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
@@ -272,7 +272,7 @@ namespace RoyalVilla_API.Controllers.v2
         }
 
         [HttpDelete("{id:int}")]
-        [Authorize(Roles = "Admin")]
+        //[Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
