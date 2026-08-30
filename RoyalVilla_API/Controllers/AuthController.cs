@@ -75,7 +75,7 @@ namespace RoyalVilla_API.Controllers
                     return BadRequest(ApiResponse<object>.BadRequest("Login failed. Please check your credentials."));
                 }
 
-                var response = ApiResponse<LoginResponseDTO>.Ok(loginResponse, "Login successfully");
+                var response = ApiResponse<TokenDTO>.Ok(loginResponse, "Login successfully");
                 return Ok(response);
             }
             catch (Exception ex)
