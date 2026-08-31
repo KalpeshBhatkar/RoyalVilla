@@ -101,12 +101,24 @@ namespace RoyalVilla_API.Services
 
                 //generate TOKEN
                 var token = await _tokenService.GenerateJwtTokenAsync(user);
-                var roles = await _userManager.GetRolesAsync(user);
+                //var roles = await _userManager.GetRolesAsync(user);
+
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+                var jwtTokenId = jwtToken.Claims.FirstOrDefault(u => u.Type == JwtRegisteredClaimNames.Jti)?.Value;
+
+                //generate new refresh token
+                var newRefreshToken = await _tokenService.GenerateRefreshTokenAsync();
+                var refreshTokenExpiry = DateTime.UtcNow.AddMinutes(5);
+
+                await _tokenService.SaveRefreshTokenAsync(user.Id, jwtTokenId, newRefreshToken, refreshTokenExpiry);
 
                 TokenDTO tokenDTO = new TokenDTO
                 {
                     //UserDTO = _mapper.Map<UserDTO>(user),
-                    AccessToken = token
+                    AccessToken = token,
+                    RefreshToken = newRefreshToken,
+                    ExpiresAt = jwtToken.ValidTo,
                 };
 
                 //loginResponseDTO.UserDTO.Role = roles.FirstOrDefault() ?? "Customer";
@@ -125,5 +137,68 @@ namespace RoyalVilla_API.Services
             return await _db.ApplicationUsers.AnyAsync(u => u.Email.ToLower() == email.ToLower());
         }
 
+        public async Task<TokenDTO?> RefreshAccessTokenAsync(RefreshTokenRequestDTO refreshTokenRequestDTO)
+        {
+            try
+            {
+                if (await IsEmailExistsAsync(refreshTokenRequestDTO.RefreshToken))
+                {
+                    return null;
+                }
+
+                //Validate refresh Token
+                var (isValid, userId, tokenFamilyId, tokenReused) = await _tokenService.ValidateRefreshTokenAsync(refreshTokenRequestDTO.RefreshToken);
+
+                //Token Reuse Detected
+                if (tokenReused)
+                {
+                    return null;
+                }
+
+                //Token is invalid or expired
+                if (!isValid || string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(tokenFamilyId))
+                {
+                    return null;
+                }
+
+                //get user
+                var user = await _db.ApplicationUsers.FindAsync(userId);
+                if(user == null)
+                {
+                    return null;
+                }
+
+                //revoke old refresh token
+                await _tokenService.RevokeRefreshTokenAsync(refreshTokenRequestDTO.RefreshToken);
+
+                //generate new access token and refresh Token
+                var token = await _tokenService.GenerateJwtTokenAsync(user);
+                //var roles = await _userManager.GetRolesAsync(user);
+
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+
+                //generate new refresh token
+                var newRefreshToken = await _tokenService.GenerateRefreshTokenAsync();
+                var refreshTokenExpiry = DateTime.UtcNow.AddMinutes(5);
+
+                await _tokenService.SaveRefreshTokenAsync(user.Id, tokenFamilyId, newRefreshToken, refreshTokenExpiry);
+
+                TokenDTO tokenDTO = new TokenDTO
+                {
+                    AccessToken = token,
+                    RefreshToken = newRefreshToken,
+                    ExpiresAt = jwtToken.ValidTo,
+                };
+
+                //loginResponseDTO.UserDTO.Role = roles.FirstOrDefault() ?? "Customer";
+
+                return tokenDTO;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"An unexpected error occurred during token refresh", ex);
+            }
+        }
     }
 }
