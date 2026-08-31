@@ -14,19 +14,26 @@ namespace RoyalVillaWeb.Services
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public void SetToken(string token)
+        public void SetToken(string accessToken, string refreshToken)
         {
-            _httpContextAccessor.HttpContext?.Session.SetString(SD.SessionToken, token);
+            _httpContextAccessor.HttpContext?.Session.SetString(SD.SessionAccessToken, accessToken);
+            _httpContextAccessor.HttpContext?.Session.SetString(SD.SessionRefreshToken, refreshToken);
         }
 
-        public string? GetToken()
+        public string? GetAccessToken()
         {
-            return _httpContextAccessor.HttpContext?.Session.GetString(SD.SessionToken);
+            return _httpContextAccessor.HttpContext?.Session.GetString(SD.SessionAccessToken);
+        }
+
+        public string? GetRefreshToken()
+        {
+            return _httpContextAccessor.HttpContext?.Session.GetString(SD.SessionRefreshToken);
         }
 
         public void ClearToken()
         {
-            _httpContextAccessor.HttpContext?.Session.Clear();
+            _httpContextAccessor.HttpContext?.Session.Remove(SD.SessionAccessToken);
+            _httpContextAccessor.HttpContext?.Session.Remove(SD.SessionRefreshToken);
         }
 
         public ClaimsPrincipal? CreatePrincipalFromJwtToken(string token)

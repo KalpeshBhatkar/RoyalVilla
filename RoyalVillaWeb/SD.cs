@@ -11,7 +11,8 @@
             TRACE,
         }
 
-        public const string SessionToken = "jwtSession";
+        public const string SessionAccessToken = "jwtToken";
+        public const string SessionRefreshToken = "RefreshToken";
         public const string CurrentAPIVersion = "v2";
         public static string APIBaseUrl { get; set; }
 
