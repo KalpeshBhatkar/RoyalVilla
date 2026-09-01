@@ -13,6 +13,8 @@ namespace RoyalVillaWeb.Services
         public IHttpClientFactory _httpClient { get; set; }
         private readonly ITokenProvider _tokenProvider;
         private readonly IHttpContextAccessor _httpcontextAccessor;
+        private const string RefreshingTokenKey = "_RefreshingToken";
+
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
@@ -26,6 +28,22 @@ namespace RoyalVillaWeb.Services
             this._httpcontextAccessor = httpContextAccessor;
         }
 
+        private bool IsRefreshingToken
+        {
+            get => _httpcontextAccessor.HttpContext?.Session.GetString(RefreshingTokenKey) == "true";
+            set
+            {
+                if (value)
+                {
+                    _httpcontextAccessor.HttpContext?.Session.SetString(RefreshingTokenKey, "true");
+                }
+                else
+                {
+                    _httpcontextAccessor.HttpContext?.Session.Remove(RefreshingTokenKey);
+                }
+            }
+        }
+
         public async Task<T?> SendAsync<T>(ApiRequest apiRequest, bool withBearer = true)
         {
             try
@@ -34,7 +52,7 @@ namespace RoyalVillaWeb.Services
                 var message = CreateRequestMessage(apiRequest, withBearer);
                 var apiResponse = await client.SendAsync(message);
 
-                if (apiResponse.StatusCode == System.Net.HttpStatusCode.Unauthorized && withBearer)
+                if (apiResponse.StatusCode == System.Net.HttpStatusCode.Unauthorized && withBearer && !IsRefreshingToken)
                 {
                     // Handle unauthorized access, e.g., refresh token or redirect to login
                     Console.WriteLine("Unauthorized access. Please check your credentials.");
@@ -109,6 +127,17 @@ namespace RoyalVillaWeb.Services
         {
             try
             {
+                if (IsRefreshingToken)
+                {
+                    await Task.Delay(1000);
+                    var accessToken = _tokenProvider.GetAccessToken();
+
+                    if (accessToken != null) { return true; }
+                    return false;
+                }
+
+                IsRefreshingToken = true;
+
                 var refreshToken = _tokenProvider.GetRefreshToken();
                 if (string.IsNullOrEmpty(refreshToken))
                 {
@@ -146,6 +175,10 @@ namespace RoyalVillaWeb.Services
                 Console.WriteLine("Token refresh failed: " + ex.Message);
                 _tokenProvider.ClearToken();
                 return false;
+            }
+            finally
+            {
+                IsRefreshingToken = false;
             }
         }
 
