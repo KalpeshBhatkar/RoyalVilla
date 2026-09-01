@@ -1,4 +1,6 @@
-﻿using RoyalVilla.DTO;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using RoyalVilla.DTO;
 using RoyalVillaWeb.Models;
 using RoyalVillaWeb.Services.IServices;
 using System.Net.Http.Headers;
@@ -45,6 +47,7 @@ namespace RoyalVillaWeb.Services
                     else
                     {
                         _tokenProvider.ClearToken();
+                        await _httpcontextAccessor.HttpContext!.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                         _httpcontextAccessor.HttpContext?.Response.Redirect("/auth/login");
                         return default;
                     }
