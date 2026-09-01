@@ -10,17 +10,18 @@ namespace RoyalVillaWeb.Services
     {
         public IHttpClientFactory _httpClient { get; set; }
         private readonly ITokenProvider _tokenProvider;
-
+        private readonly IHttpContextAccessor _httpcontextAccessor;
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
         };
         public ApiResponse<object> ResponseModel { get; set; }
-        public BaseService(IHttpClientFactory httpClient, ITokenProvider tokenProvider)
+        public BaseService(IHttpClientFactory httpClient, ITokenProvider tokenProvider, IHttpContextAccessor httpContextAccessor)
         {
             this.ResponseModel = new();
             this._httpClient = httpClient;
             this._tokenProvider = tokenProvider;
+            this._httpcontextAccessor = httpContextAccessor;
         }
 
         public async Task<T?> SendAsync<T>(ApiRequest apiRequest, bool withBearer = true)
@@ -28,33 +29,26 @@ namespace RoyalVillaWeb.Services
             try
             {
                 var client = _httpClient.CreateClient("RoyalVillaAPI");
-                var message = new HttpRequestMessage
-                {
-                    RequestUri = new Uri(apiRequest.Url, uriKind: UriKind.Relative),
-                    Method = GetHttpMethod(apiRequest.ApiType)
-                };
+                var message = CreateRequestMessage(apiRequest, withBearer);
+                var apiResponse = await client.SendAsync(message);
 
-                if (withBearer)
+                if (apiResponse.StatusCode == System.Net.HttpStatusCode.Unauthorized && withBearer)
                 {
-                    var token = _tokenProvider.GetAccessToken();
-                    if (!string.IsNullOrEmpty(token))
+                    // Handle unauthorized access, e.g., refresh token or redirect to login
+                    Console.WriteLine("Unauthorized access. Please check your credentials.");
+                    var refreshed = await RefreshAccessTokenAsync();
+                    if (refreshed)
                     {
-                        message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                    }
-                }
-
-                if (apiRequest.Data != null)
-                {
-                    if (apiRequest.Data is MultipartFormDataContent multipartFormDataContent)
-                    {
-                        message.Content = multipartFormDataContent;
+                        var retrymessage = CreateRequestMessage(apiRequest, withBearer);
+                        apiResponse = await client.SendAsync(retrymessage);
                     }
                     else
                     {
-                        message.Content = JsonContent.Create(apiRequest.Data, options: JsonOptions);
+                        _tokenProvider.ClearToken();
+                        _httpcontextAccessor.HttpContext?.Response.Redirect("/auth/login");
+                        return default;
                     }
                 }
-                var apiResponse = await client.SendAsync(message);
 
                 return await apiResponse.Content.ReadFromJsonAsync<T>(JsonOptions);
             }
@@ -75,5 +69,82 @@ namespace RoyalVillaWeb.Services
                 _ => HttpMethod.Get,
             };
         }
+
+        private HttpRequestMessage CreateRequestMessage(ApiRequest apiRequest, bool withBearer = true)
+        {
+            var message = new HttpRequestMessage
+            {
+                RequestUri = new Uri(apiRequest.Url, uriKind: UriKind.Relative),
+                Method = GetHttpMethod(apiRequest.ApiType)
+            };
+
+            if (withBearer)
+            {
+                var token = _tokenProvider.GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                }
+            }
+
+            if (apiRequest.Data != null)
+            {
+                if (apiRequest.Data is MultipartFormDataContent multipartFormDataContent)
+                {
+                    message.Content = multipartFormDataContent;
+                }
+                else
+                {
+                    message.Content = JsonContent.Create(apiRequest.Data, options: JsonOptions);
+                }
+            }
+
+            return message;
+        }
+
+        private async Task<bool> RefreshAccessTokenAsync()
+        {
+            try
+            {
+                var refreshToken = _tokenProvider.GetRefreshToken();
+                if (string.IsNullOrEmpty(refreshToken))
+                {
+                    return false;
+                }
+                var client = _httpClient.CreateClient("RoyalVillaAPI");
+                var refreshRequest = new RefreshTokenRequestDTO
+                {
+                    RefreshToken = refreshToken
+                };
+                var apiRequest = new ApiRequest
+                {
+                    ApiType = SD.ApiType.POST,
+                    Data = refreshRequest,
+                    Url = $"/api/auth/refresh-token"
+                };
+
+                var message = CreateRequestMessage(apiRequest, withBearer: false);
+                var response = await client.SendAsync(message);
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ApiResponse<TokenDTO>>();
+                    if (result?.Success == true && result.Data != null && !string.IsNullOrEmpty(result.Data.AccessToken) && !string.IsNullOrEmpty(result.Data.RefreshToken))
+                    {
+                        _tokenProvider.SetToken(result.Data.AccessToken, result.Data.RefreshToken);
+                        return true;
+                    }
+                }
+
+                _tokenProvider.ClearToken();
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Token refresh failed: " + ex.Message);
+                _tokenProvider.ClearToken();
+                return false;
+            }
+        }
+
     }
 }
